@@ -1,2 +1,29 @@
 include ':app'
 rootProject.name = "TestImplementation"
+
+// path:name: [是否源码依赖，源码地址，库依赖，版本]
+def module_config = [
+        'lib:toast': [false, 'https://github.com/hanjx-dut/CustomToastTmp.git', 'com.github.hanjx-dut:CustomToast', 1.1],
+]
+module_config.each { name,config ->
+    def path = "dev/${((String) name).replace(':', '/')}"
+    def commend
+    if (config.get(0)) {
+        include ":dev:${name}"
+        commend = "git clone ${config.get(1)} ${path} && cd ${path} && git checkout ${config.get(3)}"
+    } else {
+        commend = "rm -rf ${path}"
+    }
+    def process = ["/bin/bash", "-c", commend].execute()
+    process.waitFor()
+}
+
+gradle.ext.dependon = { project, module ->
+    def config = module_config[module] as List
+    def handler = project.dependencies
+    if (config.get(0)) {
+        handler.implementation project.project(":dev:$module")
+    } else {
+        handler.implementation "${config.get(2)}:${config.get(3)}"
+    }
+}
